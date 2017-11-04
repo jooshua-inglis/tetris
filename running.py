@@ -1,6 +1,3 @@
-#hi there
-#test branch
-
 import numpy as np, time, logging, copy, random,  pygame, os
 logging.basicConfig(level=logging.DEBUG,format =' %(asctime)s = %(levelname)s - %(message)s')
 
@@ -12,8 +9,7 @@ class solid_blocks(pygame.sprite.Sprite):
     return(self.grid)
 
   def __getitem__(self, key):
-    self.grid[]
-
+    self.grid[key]
 
 class square(pygame.sprite.Sprite):
   def __init__(self,color,coor):
@@ -98,19 +94,19 @@ def update_board(currentBoard,currentShape,change_state = 0):
     for i in currentShape.blockShape[currentShape.state]:
         logging.debug('individual co ord for block is: %s' % i)
         logging.debug('elevaion is %s' % currentShape.elevation)
-        updatedBoard[i[0] + currentShape.elevation,i[1]] = 1
+        updatedBoard.grid[i[0] + currentShape.elevation,i[1]] = 1
     return(updatedBoard)
 
 def cheaker(currentBoard,currentShape):
     try :
       for i in currentShape.blockShape[currentShape.state]:
           if currentBoard[i[0] + currentShape.elevation + 1,i[1]] == 1:
-              print(update_board(currentBoard,currentShape))
+              #print(update_board(currentBoard,currentShape))
               logging.debug('collision')
               return(False)
     except:
         logging.debug('at bottom')
-        print(update_board(currentBoard,currentShape))
+        #print(update_board(currentBoard,currentShape))
         return(False)
 
     return(True)        
@@ -140,14 +136,14 @@ def tick(currentBoard,currentShape, board, screen):
       del currentShape
       currentShape = blocks()
       continue
-    print(update_board(currentBoard,currentShape))
+    #print(str(update_board(currentBoard,currentShape)))
     if time.time() - preTime > 1:
       currentShape.move_down()
       preTime = time.time()
 
 #graphics----------------------------------------------------------------------
 def load_image(name):
-  fullName = os.path.join('.\\resources', name)
+  fullName = os.path.join('./resources', name)
   try:
     image = pygame.image.load(fullName)
     if image.get_alpha() is None:
@@ -164,7 +160,7 @@ def initiate():
   pygame.init()
 
 #imports the background image
-  fullName = os.path.join('.\\resources', 'hello.bmp')
+  fullName = os.path.join('./resources', 'hello.bmp')
   try:
     background = pygame.image.load(fullName)
     screen = pygame.display.set_mode(background.get_rect().size)
@@ -172,7 +168,7 @@ def initiate():
       background = background.convert()
     else:
       background = background.convert_alpha()
-  except pygame.error as e:
+  except Exception as e:
     print('Cannot load background:', fullName)
     raise (SystemExit, e)
 
