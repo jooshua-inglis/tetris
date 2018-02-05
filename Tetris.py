@@ -1,40 +1,43 @@
 import numpy as np, time, logging, copy, random, pygame, os
 logging.basicConfig(level=logging.DEBUG,format =' %(asctime)s = %(levelname)s - %(message)s')
 
-pygame.init()
 
+pygame.init()
 class block(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
-        self.level = 0
         self.x = x
         self.y = y
         self.rect = pygame.Rect(93 + 24 * self.x, 37 + 24 * self.y, 101, 101)
         self.image = load_image(os.path.join('redblock.bmp'))
 
     def update(self):
-        self.rect = pygame.Rect(93 + 24 * self.x, 37 + 24 * (self.y + self.level), 101, 101)
+        self.rect = pygame.Rect(93 + 24 * self.x, 37 + 24 * self.y, 101, 101)
 
-#TODO update the types
-types1 = [[[0, 0], [0, 1], [0, 2], [0, 3]],
-          [[0, 0], [1, 0], [2, 0], [3, 0]],
-          [[0, 0], [0, 1], [0, 2], [0, 3]],
-          [[0, 0], [1, 0], [2, 0], [3, 0]]]
+types0 =  [[[0, 0], [1, 0], [1, 1], [2, 1]],
+           [[0, 1], [0, 2], [1, 0], [1, 1]],
+           [[0, 0], [1, 0], [1, 1], [2, 1]],
+           [[0, 1], [0, 2], [1, 0], [1, 1]]]
+types1 = [[[1, 0], [0, 1], [2, 0], [1, 1]],
+          [[0, 0], [0, 1], [1, 1], [1, 2]],
+          [[1, 0], [0, 1], [2, 0], [1, 1]],
+          [[0, 0], [0, 1], [1, 1], [1, 2]],]
 types2 = [[[1, 0], [0, 1], [1, 1], [2, 1]],
-          [[0, 1], [1, 0], [1, 1], [1, 2]],
-          [[0, 0], [0, 1], [0, 2], [1, 1]],
-          [[0, 0], [1, 0], [2, 0], [1, 1]]]
-types3 = [[[0, 0], [1, 0], [2, 0], [2, 1]],
-          [[1, 0], [1, 1], [1, 2], [0, 2]],
-          [[0, 1], [1, 1], [2, 1], [0, 0]],
-          [[0, 0], [0, 1], [0, 2], [0, 3]]]
-types4 = [[[0, 1], [1, 1], [2, 1], [2, 0]],
-          [[1, 0], [1, 1], [1, 2], [0, 2]],
-          [[0, 1], [1, 1], [2, 1], [0, 0]],
-          [[0, 0], [0, 1], [0, 2], [1, 2]]]
-
-
-
+          [[1, 0], [1, 1], [1, 2], [2, 1]],
+          [[0, 1], [1, 1], [2, 1], [1, 2]],
+          [[0, 1], [1, 0], [1, 1], [1, 2]]]
+types3 = [[[1, 0], [1, 1], [1, 2], [0, 2]],
+          [[0, 0], [0, 1], [1, 1], [2, 1]],
+          [[0, 0], [0, 1], [0, 2], [1, 0]],
+          [[0, 1], [1, 1], [2, 1], [2, 2]]]
+types4 = [[[0, 0], [0, 1], [0, 2], [1, 2]],
+          [[0, 1], [1, 1], [2, 1], [0, 2]],
+          [[1, 0], [1, 1], [1, 2], [0, 0]],
+          [[2, 0], [0, 1], [1, 1], [2, 1]]]
+types5 = [[[0, 0], [0, 1], [0, 2], [0, 3]],
+          [[-1, 1], [0, 1], [1, 1], [2, 1]],
+          [[0, 0], [0, 1], [0, 2], [0, 3]],
+          [[-1, 1], [0, 1], [1, 1], [2, 1]]]
 def load_image(name, init = False):
     fullName = os.path.join('./resources', name)
     try:
@@ -53,12 +56,18 @@ def load_image(name, init = False):
 background = load_image('hello.bmp', True)
 screen = pygame.display.get_surface()
 
-def make_live_blocks(liveBlocks):
-    for i in types1[0]:
-        liveBlocks.append(block(i[0],i[1]))
-    return (liveBlocks)
+
+def make_live_blocks(liveBlocks, type = 'random', orientation = 0, level = 0, horizontal = 4):
+    if type == 'random':
+        type = random.randint(0,5)
+    shape = [types0,types1,types2,types3,types4,types5][type]
+    for i in shape[orientation]:
+        liveBlocks.append(block(i[0] + horizontal,i[1] + level))
+    return(type, orientation)
+
 
 def vertical_checker(liveBlocks,solidBlocks):
+    #returns true when something is underneath
     for i in liveBlocks:
         if i.y >= 19:
             return(True)
@@ -69,14 +78,25 @@ def vertical_checker(liveBlocks,solidBlocks):
                 return(True)
     return (False)
 
+def row_checker(grid):
+    for i in grid:
+        if sum(i) == 10:
+            return(True)
+    return(False)
+
+def update_grid(grid,liveBlocks):
+    for i in liveBlocks:
+        grid[i.y][i.x] = 1
+
+
 def game():
-    dif = 1
+    dif = 0.5
+    level = 0
     preTime = time.time()
     liveBlocks  = []
     solidBlocks = []
-    make_live_blocks(liveBlocks)
+    type, orientation = make_live_blocks(liveBlocks,1,0,0)
     sprites = pygame.sprite.Group()
-
     def check_left():
         for i in liveBlocks:
             if i.x <= 0:
@@ -86,7 +106,6 @@ def game():
                 if [i.x - 1, i.y] == [j.x, j.y]:
                     return (True)
         return (False)
-
     def check_right():
         for i in liveBlocks:
             if i.x >= 9:
@@ -96,8 +115,8 @@ def game():
                 if [i.x + 1, i.y] == [j.x, j.y]:
                     return (True)
         return (False)
-
-
+    horizontal = 4
+    grid = np.array([[0] * 10] * 20)
     while True:
         #pygame events
         for event in pygame.event.get():
@@ -105,29 +124,46 @@ def game():
                 exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT and not check_left():
+                    horizontal -= 1
                     for i in liveBlocks:
                         i.x -= 1
                 elif event.key == pygame.K_RIGHT and not check_right():
+                    horizontal += 1
                     for i in liveBlocks:
                         i.x += 1
                 elif event.key == pygame.K_DOWN:
-                    dif = 0
+                    while not vertical_checker(liveBlocks,solidBlocks):
+                        level += 1
+                        for i in liveBlocks:
+                            i.y = i.y + 1
+                        preTime = time.time() - dif
 
-        if vertical_checker(liveBlocks, solidBlocks):
-            solidBlocks.extend(liveBlocks)
-            time.sleep(1)
-            preTime = time.time()
-            liveBlocks = []
-            make_live_blocks(liveBlocks)
-            logging.debug('collisions')
-            dif = 1
-            
-        
+                elif event.key == pygame.K_UP:
+                    liveBlocks = []
+                    orientation = (orientation + 1)%4
+                    print(orientation)
+                    type, orientation = make_live_blocks(liveBlocks,type,orientation,level,horizontal)
 
-        elif time.time() - preTime > dif:
-            for i in liveBlocks:
-                i.level += 1
+
+
+        if time.time() - preTime > dif:
+            if vertical_checker(liveBlocks, solidBlocks):
+                solidBlocks.extend(liveBlocks)
                 preTime = time.time()
+                update_grid(grid, liveBlocks)
+                print(grid)
+                level = 0
+                liveBlocks = []
+                type, orientation = make_live_blocks(liveBlocks, 'random')
+                horizontal = 4
+                logging.debug('collisions')
+
+                continue
+            level += 1
+            for i in liveBlocks:
+                i.y = i.y + 1
+                preTime = time.time()
+                logging.debug(level)
 
         sprites.empty()
         for i in liveBlocks:
@@ -140,4 +176,5 @@ def game():
         sprites.draw(screen)
 
         pygame.display.flip()
+        time.sleep(0.01666666666*2)
 game()
