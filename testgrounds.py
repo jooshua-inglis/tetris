@@ -7,10 +7,13 @@ import pygame
 import os
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
 
-class test:
+
+class Test:
     a = 2
+
     def __repr__(self):
         return '1'
 
-a = test()
+
+a = Test()
 print(a)

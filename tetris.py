@@ -5,6 +5,7 @@ import os
 import pprint
 import pygame
 from shapes import *
+from collections import deque
 logging.basicConfig(level=logging.DEBUG, format=' %(asctime)s = %(levelname)s - %(message)s')
 
 LEFT = -1
@@ -18,18 +19,18 @@ class Block(pygame.sprite.Sprite):
         'purple.bmp',
         'orange.bmp',
         'green.bmp',
-        'blue.bmp',
-        'grey.bmp',
-        'black.bmp'
+        'blue.bmp'
     )
+
     images = tuple()
 
-    def __init__(self, x, y, shape):
+    def __init__(self, x, y, shape=None):
         pygame.sprite.Sprite.__init__(self)
         self.x = x
         self.y = y
         self.rect = pygame.Rect(93 + 24 * self.x, 37 + 24 * self.y, 101, 101)
-        self.image = Block.images[shape]
+        if shape is not None:
+            self.image = self.images[shape]
 
     @classmethod
     def load_images(cls):
@@ -37,6 +38,13 @@ class Block(pygame.sprite.Sprite):
 
     def update(self):
         self.rect = pygame.Rect(93 + 24 * self.x, 37 + 24 * self.y, 101, 101)
+
+
+class FlashingBlock(Block):
+    image_names = (
+        'grey.bmp',
+        'black.bmp'
+    )
 
 
 class Shape:
@@ -52,7 +60,7 @@ class Shape:
 
     @staticmethod
     def make_live_blocks(shape_id=None, orientation=0, level=0, horizontal=4):
-        shape = (types0, types1, types2, types3, types4, types5)[shape_id]
+        shape = types[shape_id]
         for i in shape[orientation]:
             yield Block(i[0] + horizontal, i[1] + level, shape_id)
 
@@ -90,6 +98,12 @@ class Shape:
             self.level += 1
             for i in self.layout:
                 i.y = i.y + 1
+
+    def roof_checker(self):
+        for i in self.layout:
+            if i.y == 0:
+                return True
+        return False
 
     def vertical_checker(self, solid_blocks: list):
         for i in self.layout:
@@ -154,7 +168,7 @@ def load_image(name, init=False):
 
 
 def create_row(heights, color):
-    sprites = [pygame.sprite.Group(Block(i, 19 - height, 0) for i in range(10)) for height in heights]
+    sprites = [pygame.sprite.Group(FlashingBlock(i, height, color) for i in range(10)) for height in heights]
     for i in sprites:
         i.update()
     return sprites
@@ -168,18 +182,18 @@ def flash(heights):
         for sprite in sprites:
             sprite.draw(screen)
             pygame.display.flip()
-    time.sleep(0.05)
+        time.sleep(0.05)
 
     for i in range(2):
         _flash(b_sprites)
         _flash(w_sprites)
 
 
-def full_row_checker(grid, solid_blocks):
+def full_row_checker(grid: deque, solid_blocks: list):
     deleted_rows = []
-    for index, row in enumerate(reversed(grid)):
+    for index, row in enumerate(grid):
         if sum(row) == 10:
-            deleted_rows.append(19 - index)
+            deleted_rows.append(index)
             for s_block in solid_blocks.copy():
                 if s_block.y == index:
                     solid_blocks.remove(s_block)
@@ -193,12 +207,13 @@ def full_row_checker(grid, solid_blocks):
     deleted_rows.reverse()
     for deleted_row in deleted_rows:
         grid.remove(grid[deleted_row])
-        grid.append([0]*10)
+        grid.appendleft([0]*10)
 
 
-def update_grid(grid, live_blocks: Shape):
+def update_grid(grid: deque, live_blocks: Shape):
     for i in live_blocks:
-        grid[19-i.y][i.x] = 1
+        print(i.x, i.y)
+        grid[i.y][i.x] = 1
 
 
 def controls(live_blocks: Shape, solid_blocks: list):
@@ -222,10 +237,10 @@ def controls(live_blocks: Shape, solid_blocks: list):
     return False
 
 
-def collisions(grid: list, solid_blocks: list, live_blocks: Shape,):
+def collisions(grid: deque, solid_blocks: list, live_blocks: Shape,):
     solid_blocks.extend(live_blocks)
-    update_grid(grid, live_blocks)
     logging.debug(pprint.pformat(grid))
+    update_grid(grid, live_blocks)
     live_blocks.__init__()
 
 
@@ -249,21 +264,26 @@ def game():
     live_blocks = Shape()
     solid_blocks = []
     sprites = pygame.sprite.Group()
-    grid = [[0]*10]*20  # Creates a 10 by 20 gird of 0s
+    grid = deque([0]*10 for i in range(20))  # Creates a 10 by 20 gird of 0s
 
     while True:
         if time.time() - pre_time > dif:
+            # logging.debug(grid)
+            pre_time = time.time()
             if live_blocks.vertical_checker(solid_blocks):
+                if live_blocks.roof_checker():
+                    exit()
                 collisions(grid, solid_blocks, live_blocks)
                 pre_time = time.time()
                 continue
             else:
-
-                pre_time = time.time() if controls(live_blocks, solid_blocks) else pre_time
                 live_blocks.down_one()
+
+        pre_time = time.time() if controls(live_blocks, solid_blocks) else pre_time
+
         full_row_checker(grid, solid_blocks)
         display_game(sprites, live_blocks, solid_blocks)
-        time.sleep(0.01666666666*2)
+        time.sleep(1/10)
 
 
 if __name__ == "__main__":
@@ -273,6 +293,8 @@ if __name__ == "__main__":
     screen = pygame.display.get_surface()
     pygame.display.set_icon(load_image("icon.png"))
     Block.load_images()
-    print('loaded images')
+    FlashingBlock.load_images()
+    print(Block.images)
+    print(FlashingBlock.images)
 
     game()
